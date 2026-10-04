@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess-Guess - Juego de Charadas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; user-select: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-white overflow-x-hidden">
+
+    <div id="app" class="h-full w-full flex flex-col">
+        <!-- Rendered dynamically based on URL mode (TV or Mobile) -->
+    </div>
+
+    <script>
+        // 200 películas en español latino más conocidas (sin secuelas numeradas)
+        const MOVIES_DB = [
+            "El Padrino", "Titanic", "Avatar", "Star Wars: Una Nueva Esperanza", "El Señor de los Anillos: La Comunidad del Anillo",
+            "Jurassic Park", "Forrest Gump", "Volver al Futuro", "Matrix", "Pulp Fiction",
+            "El Rey León", "Gladiador", "Buscando a Nemo", "Toy Story", "Spider-Man",
+            "Batman: El Caballero de la Noche", "Avengers: Los Vengadores", "Harry Potter y la Piedra Filosofal", "Inception", "Interstellar",
+            "Coco", "Intensa-Mente", "Up: Una Aventura de Altura", "Shrek", "Monsters, Inc.",
+            "Los Increíbles", "Ratatouille", "WALL-E", "Buscando a Dory", "Cars",
+            "Frozen: Una Aventura Congelada", "Moana: Un Mar de Aventuras", "Enredados", "La Bella y la Bestia", "Aladdín",
+            "El Rey León", "Mulan", "Pocahontas", "Tarzán", "Hércules",
+            "El Extraño Mundo de Jack", "Bichos", "Madagascar", "La Era de Hielo", "Kung Fu Panda",
+            "Cómo Entrenar a tu Dragón", "Mi Villano Favorito", "Los Minions", "Hotel Transylvania", "Lluvia de Hamburguesas",
+            "Los Juegos del Hambre", "Crepúsculo", "Divergente", "Maze Runner: Correr o Morir", "Percy Jackson y el Ladrón del Rayo",
+            "Las Crónicas de Narnia: El León, la Bruja y el Ropero", "Alicia en el País de las Maravillas", "Charlie y la Fábrica de Chocolates", "Jumanji", "La Momia",
+            "Piratas del Caribe: La Maldición del Perla Negra", "Indiana Jones y los Cazadores del Arca Perdida", "Volver al Futuro Parte II", "Volver al Futuro Parte III", "Terminator",
+            "Terminator 2: El Juicio Final", "Depredador", "Alien: El Octavo Pasajero", "Duro de Matar", "Duro de Matar 3",
+            "Rápido y Furioso", "Rápidos y Furiosos: Reto Tokio", "Misión Imposible", "Misión Imposible: Repercusión", "007: Operación Skyfall",
+            "John Wick", "Búsqueda Implacable", "Gladiador", "Troya", "300",
+            "El Señor de los Anillos: Las Dos Torres", "El Señor de los Anillos: El Retorno del Rey", "El Hobbit: Un Viaje Inesperado", "El Hobbit: La Desolación de Smaug", "El Hobbit: La Batalla de los Cinco Ejércitos",
+            "Doctor Strange: Hechicero Supremo", "Capitán América: El Primer Vengador", "Iron Man", "Thor", "Pantera Negra",
+            "Guardianes de la Galaxia", "Deadpool", "Logan", "X-Men", "Los Vengadores: Era de Ultrón",
+            "Avengers: Infinity War", "Avengers: Endgame", "Spider-Man: Sin Camino a Casa", "Batman Inicia", "El Caballero de la Noche Asciende",
+            "Guasón", "Venom", "Aquaman", "Mujer Maravilla", "Liga de la Justicia",
+            "El Conjuro", "Annabelle", "It: Eso", "El Exorcista", "Actividad Paranormal",
+            "La Monja", "La Llorona", "El Aro", "Destino Final", "Siniestro",
+            "Son Como Niños", "Mi Pobre Angelito", "Zoolander", "Quiero Matar a mi Jefe", "Superbad",
+            "¿Qué Pasó Ayer?", "Una Noche en el Museo", "Señor y Señora Smith", "Sr. y Sra. Smith", "Loco por Mary",
+            "Click: Perdiendo el Control", "Todopoderoso", "Mentiroso, Mentiroso", "Ace Ventura", "La Máscara",
+            "Náufrago", "Atrápame Si Puedes", "El Náufrago", "El Terminal", "Filadelfia",
+            "Sexto Sentido", "El Origen", "Memento", "La Isla Siniestra", "El Club de la Pelea",
+            "Seven: Pecados Capitales", "Zodiaco", "Perdida", "El Gran Truco", "Los Infiltrados",
+            "Corazón Valiente", "El Pianista", "La Lista de Schindler", "Bastardos Sin Gloria", "Django Sin Cadenas",
+            "Había una Vez en Hollywood", "Pulp Fiction", "Kill Bill: La Venganza", "Perros de Reserva", "Los Ocho Más Odiosos",
+            "El Gran Hotel Budapest", "La La Land: Una Historia de Amor", "Whiplash: Música y Obsesión", "El Cisne Negro", "Birdman",
+            "Parásitos", "El Secreto de sus Ojos", "Relatos Salvajes", "Nueve Reinas", "El Clan",
+            "Una Mente Brillante", "En Busca de la Felicidad", "El Niño con el Pijama de Rayas", "La Vida es Bella", "Cinema Paradiso",
+            "Amélie", "El Gran Pez", "E.T., el Extraterrestre", "Encuentros Cercanos del Tercer Tipo", "Grease: Brillantina",
+            "Dirty Dancing: Baile Caliente", "Footloose", "Fiebre de Sábado por la Noche", "Cantando bajo la Lluvia", "El Mago de Oz",
+            "Casablanca", "Ciudadano Kane", "Psicosis", "Los Pájaros", "La Ventana Indiscreta",
+            "Vértigo", "Rebeca", "12 Hombres en Pugna", "Testigo de Cargo", "Con Falda y a lo Loco",
+            "El Bueno, el Malo y el Feo", "Por un Puñado de Dólares", "La Muerte tenía un Precio", "Sin Perdón", "Los Imperdonables",
+            "Buenos Muchachos", "Casino", "El Irlandés", "Caracortada", "El Padrino Parte II"
+        ];
+
+        // Estado Global sincronizado vía BroadcastChannel y LocalStorage
+        const CHANNEL_NAME = "guess_guess_channel";
+        const bc = new BroadcastChannel(CHANNEL_NAME);
+
+        let gameState = {
+            status: 'SETUP', // SETUP, PLAYING, FINISHED
+            room: 'sala_principal',
+            team1: { name: 'Equipo 1', count: 2, photo: 'https://placehold.co/200x200/3b82f6/ffffff?text=E1', score: 0 },
+            team2: { name: 'Equipo 2', count: 2, photo: 'https://placehold.co/200x200/ef4444/ffffff?text=E2', score: 0 },
+            durationMin: 2,
+            currentRound: 0,
+            totalRounds: 2,
+            currentTeamTurn: 1, // 1 or 2
+            currentParticipantIdxTeam1: 0,
+            currentParticipantIdxTeam2: 0,
+            activeTeam: 1,
+            currentMovie: '',
+            timerRunning: false,
+            timeLeft: 120, // segundos
+            winner: null
+        };
+
+        function saveState() {
+            localStorage.setItem('guess_state', JSON.stringify(gameState));
+            bc.postMessage(gameState);
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('guess_state');
+            if (saved) {
+                try { gameState = JSON.parse(saved); } catch(e) {}
+            }
+        }
+
+        bc.onmessage = (event) => {
+            gameState = event.data;
+            render();
+        };
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'guess_state') {
+                loadState();
+                render();
+            }
+        });
+
+        // Detectar si es TV o Celular por URL (?mode=tv o ?mode=mobile)
+        function getMode() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('mode') || 'mobile';
+        }
+
+        // Inicialización
+        window.onload = function() {
+            loadState();
+            render();
+            
+            // Timer loop global (para sincronización si corre)
+            setInterval(() => {
+                if (gameState.status === 'PLAYING' && gameState.timerRunning) {
+                    if (gameState.timeLeft > 0) {
+                        gameState.timeLeft--;
+                        saveState();
+                        updateTvTimerDisplay();
+                    } else {
+                        // Tiempo agotado automáticamente
+                        finishTurn(0);
+                    }
+                }
+            }, 1000);
+        };
+    </script>
+
+    <script>
+        function render() {
+            const app = document.getElementById('app');
+            const mode = getMode();
+
+            if (mode === 'tv') {
+                app.innerHTML = renderTvView();
+                if (gameState.status === 'SETUP') {
+                    setTimeout(() => generateQrCode(), 100);
+                }
+            } else {
+                app.innerHTML = renderMobileView();
+            }
+        }
+
+        // ==================== VISTA ANDROID TV ====================
+        function renderTvView() {
+            if (gameState.status === 'SETUP') {
+                const currentUrl = window.location.href.split('?')[0] + '?mode=mobile';
+                return `
+                    <div class="h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-8 text-center">
+                        <div class="animate-bounce mb-4 inline-block bg-indigo-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-500/50">Android TV - Pantalla de Info</div>
+                        <h1 class="text-6xl md:text-8xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-indigo-300 to-pink-500 mb-6 drop-shadow-lg">Guess-Guess</h1>
+                        <p class="text-xl md:text-2xl text-slate-300 max-w-2xl mb-10">Escanea el código QR con tu celular para configurar los equipos y comenzar la partida en la sala.</p>
+                        
+                        <div class="bg-white p-6 rounded-3xl shadow-2xl shadow-indigo-500/20 flex flex-col items-center">
+                            <div id="qrcode" class="mb-4"></div>
+                            <span class="text-xs text-slate-600 font-mono break-all max-w-xs">${currentUrl}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (gameState.status === 'PLAYING') {
+                return `
+                    <div class="h-full w-full flex flex-col relative overflow-hidden">
+                        <!-- Temporizador Central Gigante -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 bg-slate-950/90 border-4 border-indigo-500/50 px-10 py-6 rounded-3xl shadow-2xl backdrop-blur-md text-center">
+                            <div class="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-1">Tiempo Restante</div>
+                            <div id="tv-timer" class="text-7xl md:text-9xl font-black font-mono text-white tracking-tighter">${formatTime(gameState.timeLeft)}</div>
+                            <div class="mt-2 text-sm text-slate-400 font-medium">Turno: <span class="text-teal-400 font-bold">${gameState.activeTeam === 1 ? gameState.team1.name : gameState.team2.name}</span></div>
+                        </div>
+
+                        <!-- Pantalla dividida en 2 mitades exactas -->
+                        <div class="flex-1 flex flex-col md:flex-row h-full w-full">
+                            <!-- EQUIPO 1 (Izquierda / Arriba) -->
+                            <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-950/80 to-slate-900 border-b-4 md:border-b-0 md:border-r-4 border-blue-600/30 relative">
+                                <div class="absolute top-6 left-6 bg-blue-600/30 text-blue-300 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider">Equipo 1</div>
+                                <img src="${gameState.team1.photo}" alt="Equipo 1" class="w-36 h-36 md:w-48 md:h-48 rounded-full object-cover border-4 border-blue-500 shadow-2xl mb-6 shadow-blue-500/30">
+                                <h2 class="text-4xl md:text-5xl font-black text-white mb-2 text-center">${gameState.team1.name}</h2>
+                                <div class="text-6xl md:text-7xl font-extrabold text-blue-400 font-mono mb-2">${gameState.team1.score} <span class="text-sm font-normal text-slate-400">pts</span></div>
+                                <div class="text-sm text-slate-400">Participantes: ${gameState.team1.count}</div>
+                            </div>
+
+                            <!-- EQUIPO 2 (Derecha / Abajo) -->
+                            <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-rose-950/80 to-slate-900 relative">
+                                <div class="absolute top-6 right-6 bg-rose-600/30 text-rose-300 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider">Equipo 2</div>
+                                <img src="${gameState.team2.photo}" alt="Equipo 2" class="w-36 h-36 md:w-48 md:h-48 rounded-full object-cover border-4 border-rose-500 shadow-2xl mb-6 shadow-rose-500/30">
+                                <h2 class="text-4xl md:text-5xl font-black text-white mb-2 text-center">${gameState.team2.name}</h2>
+                                <div class="text-6xl md:text-7xl font-extrabold text-rose-400 font-mono mb-2">${gameState.team2.score} <span class="text-sm font-normal text-slate-400">pts</span></div>
+                                <div class="text-sm text-slate-400">Participantes: ${gameState.team2.count}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (gameState.status === 'FINISHED') {
+                const winnerTeam = gameState.winner === 1 ? gameState.team1 : gameState.team2;
+                return `
+                    <div class="h-full flex flex-col items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 p-8 text-center animate-fade-in">
+                        <div class="inline-block bg-emerald-500 text-slate-950 px-6 py-2 rounded-full font-black text-lg uppercase tracking-widest mb-6 shadow-lg shadow-emerald-500/50">¡Partida Finalizada!</div>
+                        <img src="${winnerTeam.photo}" alt="Ganador" class="w-48 h-48 rounded-full object-cover border-8 border-emerald-400 shadow-2xl mb-6 shadow-emerald-500/40">
+                        <h1 class="text-5xl md:text-7xl font-black text-emerald-400 mb-4">${winnerTeam.name}</h1>
+                        <p class="text-3xl md:text-4xl text-white font-bold mb-8">Felicidades, ustedes ganaron con ${winnerTeam.score} puntos</p>
+                        <button onclick="resetGameToSetup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-2xl shadow-xl transition transform hover:scale-105">Reiniciar Juego</button>
+                    </div>
+                `;
+            }
+        }
+
+        function generateQrCode() {
+            const container = document.getElementById('qrcode');
+            if (container) {
+                container.innerHTML = '';
+                const currentUrl = window.location.href.split('?')[0] + '?mode=mobile';
+                new QRCode(container, {
+                    text: currentUrl,
+                    width: 220,
+                    height: 220,
+                    colorDark : "#0f172a",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            }
+        }
+
+        function updateTvTimerDisplay() {
+            const tvTimer = document.getElementById('tv-timer');
+            if (tvTimer) {
+                tvTimer.innerText = formatTime(gameState.timeLeft);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // ==================== VISTA MÓVIL (CONTROL) ====================
+        function renderMobileView() {
+            if (gameState.status === 'SETUP') {
+                return `
+                    <div class="min-h-full flex flex-col bg-slate-900 p-6 overflow-y-auto">
+                        <div class="text-center mb-6">
+                            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">Guess-Guess</h1>
+                            <p class="text-sm text-slate-400">Configuración de Partida</p>
+                        </div>
+
+                        <form id="setup-form" onsubmit="handleSetupSubmit(event)" class="space-y-6 pb-10">
+                            <!-- Config Equipo 1 -->
+                            <div class="bg-slate-800/80 p-5 rounded-2xl border border-blue-500/30 shadow-lg space-y-4">
+                                <h2 class="text-lg font-bold text-blue-400 flex items-center gap-2"><span>🛡️</span> Equipo 1</h2>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Nombre del Equipo</label>
+                                    <input type="text" id="t1-name" value="${gameState.team1.name}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Cantidad de Participantes</label>
+                                    <input type="number" id="t1-count" min="1" max="20" value="${gameState.team1.count}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Foto del Equipo</label>
+                                    <div class="flex items-center gap-4">
+                                        <img id="t1-img-preview" src="${gameState.team1.photo}" class="w-16 h-16 rounded-full object-cover border-2 border-blue-500">
+                                        <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event, 1)" class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Config Equipo 2 -->
+                            <div class="bg-slate-800/80 p-5 rounded-2xl border border-rose-500/30 shadow-lg space-y-4">
+                                <h2 class="text-lg font-bold text-rose-400 flex items-center gap-2"><span>🔥</span> Equipo 2</h2>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Nombre del Equipo</label>
+                                    <input type="text" id="t2-name" value="${gameState.team2.name}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-rose-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Cantidad de Participantes</label>
+                                    <input type="number" id="t2-count" min="1" max="20" value="${gameState.team2.count}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-rose-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Foto del Equipo</label>
+                                    <div class="flex items-center gap-4">
+                                        <img id="t2-img-preview" src="${gameState.team2.photo}" class="w-16 h-16 rounded-full object-cover border-2 border-rose-500">
+                                        <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event, 2)" class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-600 file:text-white hover:file:bg-rose-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selector de Minutos -->
+                            <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 shadow-lg">
+                                <label class="block text-xs font-semibold uppercase text-slate-300 mb-2">Duración por Turno (Minutos: <span id="dur-val">${gameState.durationMin}</span>)</label>
+                                <input type="range" id="duration-range" min="1" max="10" value="${gameState.durationMin}" oninput="document.getElementById('dur-val').innerText=this.value" class="w-full accent-indigo-500">
+                                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                                    <span>1 min</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black py-4 rounded-2xl shadow-xl text-lg uppercase tracking-wider transition transform active:scale-95">Comenzar Partida</button>
+                        </form>
+                    </div>
+                `;
+            } else if (gameState.status === 'PLAYING') {
+                const activeTeamObj = gameState.activeTeam === 1 ? gameState.team1 : gameState.team2;
+                return `
+                    <div class="min-h-full flex flex-col bg-slate-900 p-6 justify-between">
+                        <!-- Header Turno -->
+                        <div>
+                            <div class="flex justify-between items-center mb-6">
+                                <span class="text-xs font-bold uppercase px-3 py-1 bg-indigo-600/30 text-indigo-300 rounded-full">Ronda ${gameState.currentRound + 1} de ${gameState.totalRounds}</span>
+                                <button onclick="resetGameToSetup()" class="text-xs text-slate-400 hover:text-white underline">Reiniciar Config</button>
+                            </div>
+
+                            <div class="bg-slate-800 border-2 ${gameState.activeTeam === 1 ? 'border-blue-500/50' : 'border-rose-500/50'} rounded-3xl p-6 text-center shadow-xl mb-6">
+                                <img src="${activeTeamObj.photo}" class="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 ${gameState.activeTeam === 1 ? 'border-blue-500' : 'border-rose-500'}">
+                                <h2 class="text-2xl font-black text-white">${activeTeamObj.name}</h2>
+                                <p class="text-xs text-slate-400 mt-1">Turno de mímica en curso</p>
+                            </div>
+
+                            <!-- Botón Mostrar Película (Mantener presionado) -->
+                            <div class="mb-6">
+                                <button id="reveal-btn" 
+                                    onmousedown="revealMovie(true)" onmouseup="revealMovie(false)" ontouchstart="revealMovie(true)" ontouchend="revealMovie(false)"
+                                    class="w-full bg-slate-800 hover:bg-slate-700 border-2 border-dashed border-teal-500 text-teal-300 py-6 rounded-2xl font-bold text-center shadow-lg transition select-none flex flex-col items-center justify-center gap-2">
+                                    <span class="text-2xl">👁️</span>
+                                    <span id="movie-display-text" class="text-lg font-black tracking-wide">Mantén presionado para ver película</span>
+                                </button>
+                                <p class="text-[11px] text-center text-slate-500 mt-2">La película solo se ve mientras mantienes presionado el botón.</p>
+                            </div>
+                        </div>
+
+                        <!-- Botón Comenzar / Basta -->
+                        <div class="space-y-4">
+                            <div class="text-center font-mono text-3xl font-black text-white mb-2">${formatTime(gameState.timeLeft)}</div>
+                            ${!gameState.timerRunning ? `
+                                <button onclick="startTurnTimer()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-5 rounded-2xl shadow-xl text-xl uppercase tracking-wider transition transform active:scale-95">Comenzar Turno</button>
+                            ` : `
+                                <button onclick="finishTurnManually()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-5 rounded-2xl shadow-xl text-xl uppercase tracking-wider animate-pulse transition transform active:scale-95">¡Basta!</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            } else if (gameState.status === 'FINISHED') {
+                const winnerTeam = gameState.winner === 1 ? gameState.team1 : gameState.team2;
+                return `
+                    <div class="h-full flex flex-col items-center justify-center bg-slate-900 p-6 text-center">
+                        <div class="w-24 h-24 rounded-full bg-emerald-500/20 border-4 border-emerald-500 flex items-center justify-center text-4xl mb-6">🏆</div>
+                        <h1 class="text-3xl font-black text-emerald-400 mb-2">¡Partida Terminada!</h1>
+                        <p class="text-xl text-white font-bold mb-6">${winnerTeam.name} Gana con ${winnerTeam.score} pts</p>
+                        <button onclick="resetGameToSetup()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl shadow-xl">Configurar Nueva Partida</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ==================== LÓGICA DEL JUEGO ====================
+        let tempPhoto1 = null;
+        let tempPhoto2 = null;
+
+        function handlePhotoUpload(event, teamNum) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (teamNum === 1) {
+                        tempPhoto1 = e.target.result;
+                        document.getElementById('t1-img-preview').src = tempPhoto1;
+                    } else {
+                        tempPhoto2 = e.target.result;
+                        document.getElementById('t2-img-preview').src = tempPhoto2;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleSetupSubmit(event) {
+            event.preventDefault();
+            gameState.team1.name = document.getElementById('t1-name').value;
+            gameState.team1.count = parseInt(document.getElementById('t1-count').value);
+            if (tempPhoto1) gameState.team1.photo = tempPhoto1;
+
+            gameState.team2.name = document.getElementById('t2-name').value;
+            gameState.team2.count = parseInt(document.getElementById('t2-count').value);
+            if (tempPhoto2) gameState.team2.photo = tempPhoto2;
+
+            gameState.durationMin = parseInt(document.getElementById('duration-range').value);
+            
+            // Reglas de rondas y equipo inicial
+            // El juego dura la cantidad de rondas como pares de participantes haya (max(t1, t2))
+            gameState.totalRounds = Math.max(gameState.team1.count, gameState.team2.count);
+            gameState.currentRound = 0;
+            gameState.team1.score = 0;
+            gameState.team2.score = 0;
+            gameState.currentParticipantIdxTeam1 = 0;
+            gameState.currentParticipantIdxTeam2 = 0;
+
+            // Regla de inicio: Si hay cantidad impar y un equipo es más numeroso, comienza el más numeroso. Si no, aleatorio.
+            if (gameState.team1.count > gameState.team2.count) {
+                gameState.activeTeam = 1;
+            } else if (gameState.team2.count > gameState.team1.count) {
+                gameState.activeTeam = 2;
+            } else {
+                gameState.activeTeam = Math.random() < 0.5 ? 1 : 2;
+            }
+
+            gameState.status = 'PLAYING';
+            gameState.timeLeft = gameState.durationMin * 60;
+            gameState.timerRunning = false;
+            pickRandomMovie();
+
+            saveState();
+            render();
+        }
+
+        function pickRandomMovie() {
+            const randomIdx = Math.floor(Math.random() * MOVIES_DB.length);
+            gameState.currentMovie = MOVIES_DB[randomIdx];
+        }
+
+        function revealMovie(show) {
+            const textEl = document.getElementById('movie-display-text');
+            if (textEl) {
+                if (show) {
+                    textEl.innerText = gameState.currentMovie;
+                    textEl.classList.add('text-teal-300');
+                } else {
+                    textEl.innerText = "Mantén presionado para ver película";
+                    textEl.classList.remove('text-teal-300');
+                }
+            }
+        }
+
+        function startTurnTimer() {
+            gameState.timerRunning = true;
+            saveState();
+            render();
+        }
+
+        function finishTurnManually() {
+            // El puntaje es igual al sobrante de segundos de cada turno de ese equipo
+            const remainingSecs = gameState.timeLeft;
+            finishTurn(remainingSecs);
+        }
+
+        function finishTurn(pointsEarned) {
+            gameState.timerRunning = false;
+            
+            // Sumar puntaje al equipo activo
+            if (gameState.activeTeam === 1) {
+                gameState.team1.score += pointsEarned;
+                gameState.currentParticipantIdxTeam1++;
+            } else {
+                gameState.team2.score += pointsEarned;
+                gameState.currentParticipantIdxTeam2++;
+            }
+
+            // Verificar si termina la ronda o el juego
+            // Una ronda completa consta de un turno para cada equipo (o hasta que se agoten participantes)
+            const maxRounds = gameState.totalRounds;
+            
+            // Cambiar de equipo o avanzar ronda
+            // Verificamos si aún quedan participantes por jugar en esta ronda
+            const t1Done = gameState.currentParticipantIdxTeam1 >= gameState.team1.count;
+            const t2Done = gameState.currentParticipantIdxTeam2 >= gameState.team2.count;
+
+            if (t1Done && t2Done) {
+                // Fin de todas las rondas
+                gameState.status = 'FINISHED';
+                if (gameState.team1.score > gameState.team2.score) {
+                    gameState.winner = 1;
+                } else if (gameState.team2.score > gameState.team1.score) {
+                    gameState.winner = 2;
+                } else {
+                    gameState.winner = 1; // Empate predeterminado
+                }
+            } else {
+                // Alternar al otro equipo si aún tiene participante en esta ronda, o saltar al siguiente
+                if (gameState.activeTeam === 1 && !t2Done) {
+                    gameState.activeTeam = 2;
+                } else if (gameState.activeTeam === 2 && !t1Done) {
+                    gameState.activeTeam = 1;
+                } else {
+                    // Si uno ya terminó sus participantes pero el otro sigue (casos impares), continúa el que tenga pendientes
+                    if (!t1Done) gameState.activeTeam = 1;
+                    else if (!t2Done) gameState.activeTeam = 2;
+                    else {
+                        gameState.status = 'FINISHED';
+                        gameState.winner = gameState.team1.score >= gameState.team2.score ? 1 : 2;
+                        saveState();
+                        render();
+                        return;
+                    }
+                }
+                gameState.currentRound++;
+                gameState.timeLeft = gameState.durationMin * 60;
+                pickRandomMovie();
+            }
+
+            saveState();
+            render();
+        }
+
+        function resetGameToSetup() {
+            gameState.status = 'SETUP';
+            gameState.timerRunning = false;
+            saveState();
+            render();
+        }
+    </script>
+</body>
+</html>
